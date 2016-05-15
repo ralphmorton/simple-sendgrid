@@ -3,6 +3,10 @@
 module Network.SendGrid.Types where
 
 import Control.Lens.TH
+import Control.Monad.Except (MonadError)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.Trans (MonadIO)
+import Control.Monad.Writer (MonadWriter)
 
 data SendGrid = SendGrid {
     _sendGridApiKey :: String,
@@ -10,10 +14,17 @@ data SendGrid = SendGrid {
 }
 
 data Mail = Mail {
-    _mailFrom :: String,
-    _mailTo :: [String],
+    _mailFrom :: MailRecipient,
+    _mailTo :: [MailRecipient],
+    _mailCC :: [MailRecipient],
+    _mailBCC :: [MailRecipient],
     _mailSubject :: String,
     _mailContent :: MailContent
+}
+
+data MailRecipient = MailRecipient {
+    _mailRecipientName :: Maybe String,
+    _mailRecipientAddress :: String
 }
 
 data MailContent = MailContent {
@@ -23,4 +34,5 @@ data MailContent = MailContent {
 
 makeClassy ''SendGrid
 makeLenses ''Mail
+makeLenses ''MailRecipient
 makeLenses ''MailContent
