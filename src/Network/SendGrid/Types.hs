@@ -7,6 +7,7 @@ import Control.Monad.Except (MonadError)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (MonadIO)
 import Control.Monad.Writer (MonadWriter)
+import Data.ByteString.Lazy.Char8 (ByteString)
 
 data SendGrid = SendGrid {
     _sendGridApiKey :: String,
@@ -19,7 +20,8 @@ data Mail = Mail {
     _mailCC :: [MailRecipient],
     _mailBCC :: [MailRecipient],
     _mailSubject :: String,
-    _mailContent :: MailContent
+    _mailContent :: MailContent,
+    _mailAttachments :: [(String, ByteString)]
 }
 
 data MailRecipient = MailRecipient {
@@ -28,8 +30,8 @@ data MailRecipient = MailRecipient {
 }
 
 data MailContent = MailContent {
-    _mailContentHTML :: Maybe String,
-    _mailContentText :: String
+    _mailContentHTML :: Maybe ByteString,
+    _mailContentText :: ByteString
 }
 
 makeClassy ''SendGrid

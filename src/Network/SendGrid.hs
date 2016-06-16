@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
 module Network.SendGrid(
@@ -11,26 +12,43 @@ import Control.Lens (view, (^.))
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (MonadIO, liftIO)
+import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Maybe (listToMaybe, maybeToList)
+import Data.Monoid
+import qualified Data.Text as T
+import Network.HTTP.Client
+import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Nano
 
 send :: (MonadError e m, MonadReader r m, AsHttpError e, HasHttpCfg r, HasSendGrid r, MonadIO m) => Mail -> m ()
 send mail = do
-    apiKey <- view sendGridApiKey
-    apiSecret <- view sendGridApiSecret
-    let dta = [("subject", mail ^. mailSubject), ("api_user", apiKey), ("api_key", apiSecret)] ++ encodeAddresses mail ++ encodeContent (mail ^. mailContent)
-    req <- buildReq POST "https://api.sendgrid.com/api/mail.send.json" $ UrlEncodedRequestData dta
+    req <- addRequestData mail =<< buildReq POST "https://api.sendgrid.com/api/mail.send.json" NoRequestData
     http' req
 
-encodeAddresses :: Mail -> [(String, String)]
-encodeAddresses mail =
-    concat [
-        [("from", mail ^. mailFrom . mailRecipientAddress)] ++ maybeToList (fmap ("fromname", ) $ mail ^. mailFrom . mailRecipientName),
-        concat . fmap (encode "to" "toname") $ mail ^. mailTo,
-        concat . fmap (encode "cc" "ccname") $ mail ^. mailCC,
-        concat . fmap (encode "bcc" "bccname") $ mail ^. mailBCC
-    ]
-    where encode afld nfld (MailRecipient mname addr) = [(afld ++ "[]", addr)] ++ maybeToList (fmap (nfld ++ "[]",) mname)
+addRequestData :: (MonadError e m, MonadReader r m, AsHttpError e, HasHttpCfg r, HasSendGrid r, MonadIO m) => Mail -> Request -> m Request
+addRequestData mail req = do
+    apiKey <- B.pack <$> view sendGridApiKey
+    apiSecret <- B.pack <$> view sendGridApiSecret
+    flip formDataBody req $ base apiKey apiSecret ++ tos ++ ccs ++ bccs ++ content (mail ^. mailContent) ++ attachments
+    where
+    (MailRecipient mfromName fromAddr) = mail ^. mailFrom
+    base apiKey apiSecret =
+        [
+            partBS "subject" . B.pack $ mail ^. mailSubject,
+            partBS "api_user" apiKey,
+            partBS "api_key" apiSecret,
+            partBS "from" $ B.pack fromAddr,
+            partBS "fromname" . B.pack $ maybe "" id mfromName
+        ]
+    tos = concat (encodeRecip "to[]" "toname[]" <$> mail ^. mailTo)
+    ccs = concat (encodeRecip "cc[]" "ccname[]" <$> mail ^. mailCC)
+    bccs = concat (encodeRecip "bcc[]" "bccname[]" <$> mail ^. mailBCC)
+    content (MailContent html text) = [partLBS "text" text] ++ maybe [] ((:[]) . partLBS "html") html
+    attachments = uncurry attachmentPart <$> mail ^. mailAttachments
 
-encodeContent :: MailContent -> [(String, String)]
-encodeContent (MailContent html text) = [("text", text)] ++ maybe [] ((:[]) . ("html",)) html
+encodeRecip :: T.Text -> T.Text -> MailRecipient -> [Part]
+encodeRecip b bn (MailRecipient mname addr) = [partBS b $ B.pack addr] ++ maybe [] ((:[]) . partBS bn . B.pack) mname
+
+attachmentPart :: String -> BL.ByteString -> Part
+attachmentPart name = partFileRequestBody (T.pack $ "files["<>name<>"]") name . RequestBodyLBS
