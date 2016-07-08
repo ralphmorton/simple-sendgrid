@@ -8,6 +8,7 @@ import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (MonadIO)
 import Control.Monad.Writer (MonadWriter)
 import Data.ByteString.Lazy.Char8 (ByteString)
+import qualified Data.Map as M
 
 data SendGrid = SendGrid {
     _sendGridApiKey :: String,
@@ -21,7 +22,8 @@ data Mail = Mail {
     _mailBCC :: [MailRecipient],
     _mailSubject :: String,
     _mailContent :: MailContent,
-    _mailAttachments :: [(String, ByteString)]
+    _mailAttachments :: [(String, ByteString)],
+    _mailHeaders :: M.Map String String
 }
 
 data MailRecipient = MailRecipient {

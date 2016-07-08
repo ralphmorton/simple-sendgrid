@@ -12,6 +12,7 @@ import Control.Lens (view, (^.))
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Maybe (listToMaybe, maybeToList)
@@ -39,7 +40,8 @@ addRequestData mail req = do
             partBS "api_user" apiKey,
             partBS "api_key" apiSecret,
             partBS "from" $ B.pack fromAddr,
-            partBS "fromname" . B.pack $ maybe "" id mfromName
+            partBS "fromname" . B.pack $ maybe "" id mfromName,
+            partBS "headers" . BL.toStrict . encode $ mail ^. mailHeaders
         ]
     tos = concat (encodeRecip "to[]" "toname[]" <$> mail ^. mailTo)
     ccs = concat (encodeRecip "cc[]" "ccname[]" <$> mail ^. mailCC)
