@@ -1,5 +1,5 @@
 name:                simple-sendgrid
-version:             0.4.0
+version:             0.4.1
 synopsis:            Just sends emails via sendgrid
 description:         Just sends emails via sendgrid
 homepage:            https://github.com/ralphmorton/simple-sendgrid#readme

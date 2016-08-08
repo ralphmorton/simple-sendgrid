@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Network.SendGrid.Types where
@@ -7,6 +8,7 @@ import Control.Monad.Except (MonadError)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (MonadIO)
 import Control.Monad.Writer (MonadWriter)
+import Data.Aeson (ToJSON(..), encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.Map as M
 
@@ -23,7 +25,8 @@ data Mail = Mail {
     _mailSubject :: String,
     _mailContent :: MailContent,
     _mailAttachments :: [(String, ByteString)],
-    _mailHeaders :: M.Map String String
+    _mailHeaders :: M.Map String String,
+    _mailXSMTP :: XSMTP
 }
 
 data MailRecipient = MailRecipient {
@@ -36,7 +39,18 @@ data MailContent = MailContent {
     _mailContentText :: ByteString
 }
 
+data XSMTP = XSMTP {
+    _xSMTPUniqueArgs :: Maybe (M.Map String String)
+}
+
+instance ToJSON XSMTP where
+    toJSON x =
+        object [
+            "unique_args" .= _xSMTPUniqueArgs x
+        ]
+
 makeClassy ''SendGrid
 makeLenses ''Mail
 makeLenses ''MailRecipient
 makeLenses ''MailContent
+makeLenses ''XSMTP

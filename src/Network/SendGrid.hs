@@ -41,7 +41,8 @@ addRequestData mail req = do
             partBS "api_key" apiSecret,
             partBS "from" $ B.pack fromAddr,
             partBS "fromname" . B.pack $ maybe "" id mfromName,
-            partBS "headers" . BL.toStrict . encode $ mail ^. mailHeaders
+            partBS "headers" . BL.toStrict . encode $ mail ^. mailHeaders,
+            partLBS "x-smtpapi" . encode $ mail ^. mailXSMTP
         ]
     tos = concat (encodeRecip "to[]" "toname[]" <$> mail ^. mailTo)
     ccs = concat (encodeRecip "cc[]" "ccname[]" <$> mail ^. mailCC)
