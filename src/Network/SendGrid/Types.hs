@@ -36,7 +36,7 @@ data MailRecipient = MailRecipient {
 
 data MailContent = MailContent {
     _mailContentHTML :: Maybe ByteString,
-    _mailContentText :: ByteString
+    _mailContentText :: Maybe ByteString
 }
 
 data XSMTP = XSMTP {

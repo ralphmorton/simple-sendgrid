@@ -47,7 +47,7 @@ addRequestData mail req = do
     tos = concat (encodeRecip "to[]" "toname[]" <$> mail ^. mailTo)
     ccs = concat (encodeRecip "cc[]" "ccname[]" <$> mail ^. mailCC)
     bccs = concat (encodeRecip "bcc[]" "bccname[]" <$> mail ^. mailBCC)
-    content (MailContent html text) = [partLBS "text" text] ++ maybe [] ((:[]) . partLBS "html") html
+    content (MailContent html text) = maybe [] ((:[]) . partLBS "text") text ++ maybe [] ((:[]) . partLBS "html") html
     attachments = uncurry attachmentPart <$> mail ^. mailAttachments
 
 encodeRecip :: T.Text -> T.Text -> MailRecipient -> [Part]
