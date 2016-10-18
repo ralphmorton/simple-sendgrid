@@ -1,16 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Network.SendGrid.Types where
 
 import Control.Lens.TH
 import Data.Aeson
 import Data.ByteString.Lazy.Char8 (ByteString)
+import Database.Persist.Class (PersistField (..))
+import Database.Persist.Sql (PersistFieldSql (..))
 import qualified Data.Map as M
 
 data SendGrid = SendGrid {
     _sendGridApiKey :: String,
-    _sendGridApiSecret :: String
+    _sendGridApiSecret :: String,
+    _sendGridApiKeyV3 :: String
 }
 
 data Mail = Mail {
@@ -44,6 +48,12 @@ instance ToJSON XSMTP where
         object [
             "unique_args" .= _xSMTPUniqueArgs x
         ]
+
+newtype ContactListId = ContactListId { unContactListId :: Word }
+  deriving (Eq, Show, ToJSON, FromJSON, PersistField, PersistFieldSql)
+
+newtype RecipientId = RecipientId { unRecipientId :: String }
+  deriving (Eq, Show, ToJSON, FromJSON, PersistField, PersistFieldSql)
 
 makeClassy ''SendGrid
 makeLenses ''Mail
