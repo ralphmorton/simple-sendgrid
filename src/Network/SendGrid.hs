@@ -9,18 +9,18 @@ module Network.SendGrid(
 import Network.SendGrid.Types
 
 import Control.Lens (view, (^.))
-import Control.Monad.Except (MonadError, throwError)
+import Control.Monad.Except (MonadError)
 import Control.Monad.Reader (MonadReader)
-import Control.Monad.Trans (MonadIO, liftIO)
+import Control.Monad.Trans (MonadIO)
 import Data.Aeson (encode)
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy.Char8 as BL
-import Data.Maybe (listToMaybe, maybeToList)
+import Data.Maybe (fromMaybe)
 import Data.Monoid
-import qualified Data.Text as T
 import Network.HTTP.Client
 import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Nano
+import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Text as T
 
 send :: (MonadError e m, MonadReader r m, AsHttpError e, HasHttpCfg r, HasSendGrid r, MonadIO m) => Mail -> m ()
 send mail = do
@@ -40,7 +40,7 @@ addRequestData mail req = do
             partBS "api_user" apiKey,
             partBS "api_key" apiSecret,
             partBS "from" $ B.pack fromAddr,
-            partBS "fromname" . B.pack $ maybe "" id mfromName,
+            partBS "fromname" . B.pack $ fromMaybe "" mfromName,
             partBS "headers" . BL.toStrict . encode $ mail ^. mailHeaders,
             partLBS "x-smtpapi" . encode $ mail ^. mailXSMTP
         ]
@@ -51,7 +51,8 @@ addRequestData mail req = do
     attachments = uncurry attachmentPart <$> mail ^. mailAttachments
 
 encodeRecip :: T.Text -> T.Text -> MailRecipient -> [Part]
-encodeRecip b bn (MailRecipient mname addr) = [partBS b $ B.pack addr] ++ maybe [] ((:[]) . partBS bn . B.pack) mname
+encodeRecip b bn (MailRecipient mname addr) =
+  partBS b (B.pack addr) : maybe [] ((:[]) . partBS bn . B.pack) mname
 
 attachmentPart :: String -> BL.ByteString -> Part
 attachmentPart name = partFileRequestBody (T.pack $ "files["<>name<>"]") name . RequestBodyLBS

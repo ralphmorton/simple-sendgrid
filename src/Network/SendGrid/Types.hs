@@ -4,11 +4,7 @@
 module Network.SendGrid.Types where
 
 import Control.Lens.TH
-import Control.Monad.Except (MonadError)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.Trans (MonadIO)
-import Control.Monad.Writer (MonadWriter)
-import Data.Aeson (ToJSON(..), encode, object, (.=))
+import Data.Aeson
 import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.Map as M
 
