@@ -7,6 +7,7 @@ module Network.SendGrid.Contacts
   , createRecipients )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Lens (view, (^?), to)
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -89,9 +90,13 @@ createRecipients
   => [String]          -- ^ Collection of emails to insert
   -> m [RecipientId]   -- ^ Bunch of 'RecipientId's
 createRecipients emails = do
-  let val = object . pure . ("email" .=) <$> emails
+  let (now,later) = splitAt 1000 emails
+      val = object . pure . ("email" .=) <$> now
       url = "v3/contactdb/recipients"
   http' =<< sendGridReq POST url (mkJSONData val)
+  unless (null later) . void $ do
+    liftIO (threadDelay 1000000)
+    createRecipients later
   return (recipientIdFromEmail <$> emails)
 
 ----------------------------------------------------------------------------
