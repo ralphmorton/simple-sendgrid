@@ -38,7 +38,7 @@ createContactList
      -- ^ 'Nothing' when we cannot extract ID from response
 createContactList name = do
   let val = object ["name" .= name]
-  r <- httpJSON =<< sendGridReq POST "v3/contactdb/lists/" (mkJSONData val)
+  r <- httpJSON =<< sendGridReq POST "v3/contactdb/lists" (mkJSONData val)
   return ((r :: Value) ^? (key "id" . _Integer . to (ContactListId . fromIntegral)))
 
 -- | Delete a contract list.
