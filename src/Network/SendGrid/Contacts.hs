@@ -4,7 +4,8 @@ module Network.SendGrid.Contacts
   ( createContactList
   , deleteContactList
   , insertRecipients
-  , createRecipients )
+  , createRecipients
+  , addCustomField )
 where
 
 import Control.Concurrent (threadDelay)
@@ -87,17 +88,35 @@ createRecipients
      , HasHttpCfg r
      , HasSendGrid r
      , MonadIO m )
-  => [String]          -- ^ Collection of emails to insert
+  => [RecipientInfo]   -- ^ Collection of emails to insert
   -> m [RecipientId]   -- ^ Bunch of 'RecipientId's
-createRecipients emails = do
-  let (now,later) = splitAt 1000 emails
-      val = object . pure . ("email" .=) <$> now
+createRecipients rinfos = do
+  let (now,later) = splitAt 1000 rinfos
       url = "v3/contactdb/recipients"
-  http' =<< sendGridReq POST url (mkJSONData val)
+  http' =<< sendGridReq POST url (mkJSONData now)
   unless (null later) . void $ do
     liftIO (threadDelay 1000000)
     createRecipients later
-  return (recipientIdFromEmail <$> emails)
+  return (recipientIdFromEmail . view recipientInfoEmail <$> rinfos)
+
+-- | Add a custom field.
+
+addCustomField
+  :: ( MonadError e m
+     , MonadReader r m
+     , AsHttpError e
+     , HasHttpCfg r
+     , HasSendGrid r
+     , MonadIO m )
+  => String            -- ^ Name of custom field
+  -> CustomFieldType   -- ^ Type of custom field
+  -> m ()
+addCustomField name t = do
+  let url = "v3/contactdb/custom_fields"
+      val = object
+        [ "name" .= name
+        , "type" .= t ]
+  http' =<< sendGridReq POST url (mkJSONData val)
 
 ----------------------------------------------------------------------------
 -- Helpers
