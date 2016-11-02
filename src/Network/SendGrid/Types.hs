@@ -9,7 +9,8 @@ import Data.Aeson
 import Data.ByteString.Lazy.Char8 (ByteString)
 import Database.Persist.Class (PersistField (..))
 import Database.Persist.Sql (PersistFieldSql (..))
-import qualified Data.Map as M
+import qualified Data.Map  as M
+import qualified Data.Text as T
 
 data SendGrid = SendGrid {
     _sendGridApiKey :: String,
@@ -55,8 +56,32 @@ newtype ContactListId = ContactListId { unContactListId :: Word }
 newtype RecipientId = RecipientId { unRecipientId :: String }
   deriving (Eq, Show, ToJSON, FromJSON, PersistField, PersistFieldSql)
 
+data RecipientInfo = RecipientInfo
+  { _recipientInfoEmail  :: String
+  , _recipientInfoCustom :: [(String, String)]
+  } deriving (Eq, Show)
+
+instance ToJSON RecipientInfo where
+  toJSON r = object $
+    ("email" .= _recipientInfoEmail r) : fmap f (_recipientInfoCustom r)
+    where f (t, value) = T.pack t .= value
+
+-- | Types of custom fields associated with recipients SendGrid allows.
+
+data CustomFieldType
+  = CustomFieldDate
+  | CustomFieldText
+  | CustomFieldNumber
+  deriving (Eq, Show)
+
+instance ToJSON CustomFieldType where
+  toJSON CustomFieldDate   = String "date"
+  toJSON CustomFieldText   = String "text"
+  toJSON CustomFieldNumber = String "number"
+
 makeClassy ''SendGrid
 makeLenses ''Mail
 makeLenses ''MailRecipient
 makeLenses ''MailContent
 makeLenses ''XSMTP
+makeLenses ''RecipientInfo
