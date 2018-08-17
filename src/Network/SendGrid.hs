@@ -51,8 +51,10 @@ addRequestData mail req = do
     attachments = uncurry attachmentPart <$> mail ^. mailAttachments
 
 encodeRecip :: T.Text -> T.Text -> MailRecipient -> [Part]
-encodeRecip b bn (MailRecipient mname addr) =
-  partBS b (B.pack addr) : maybe [] ((:[]) . partBS bn . B.pack) mname
+encodeRecip b bn (MailRecipient mname addr) = [addrPart, maybe addrAsNamePart (partBS bn . B.pack) mname]
+    where
+    addrPart = partBS b (B.pack addr)
+    addrAsNamePart = partBS bn (B.pack addr)
 
 attachmentPart :: String -> BL.ByteString -> Part
 attachmentPart name = partFileRequestBody (T.pack $ "files["<>name<>"]") name . RequestBodyLBS
